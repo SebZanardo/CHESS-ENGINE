@@ -1,0 +1,6 @@
+*.DS_Store
+
+# Ignore all files, except the ones with an extension
+*
+!/**/
+!*.*
