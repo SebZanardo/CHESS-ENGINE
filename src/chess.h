@@ -81,4 +81,8 @@ typedef struct {
 } Board;
 
 
+/* FUNCTION DEFINITIONS */
+Square position_to_index(int x, int y);
+
+
 #endif  /* CHESS_H */
