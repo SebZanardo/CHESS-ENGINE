@@ -4,7 +4,13 @@
 
 
 int main(void) {
-	Board board;
-	print_board(board);
+	char* fen_string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+	Board board = {};
+
+	setup_board(&board, fen_string);
+
+	print_board(&board);
+	print_board_details(&board);
+
 	return 0;
 }

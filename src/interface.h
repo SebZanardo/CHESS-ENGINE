@@ -5,7 +5,9 @@
 #include "chess.h"
 
 
-void print_board(Board board);
+/* FUNCTION DEFINITIONS */
+void print_board(Board* board_ptr);
+void print_board_details(Board* board_ptr);
 
 
 #endif  /* INTERFACE_H */
