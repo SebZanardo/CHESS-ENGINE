@@ -67,6 +67,12 @@ typedef struct {
 
 
 typedef struct {
+	Move moves[218];  // 218 is the maximum number of moves in a chess position
+	int move_count;
+} MoveList;
+
+
+typedef struct {
 	PieceType type;
 	Colour colour;
 	Square square;
@@ -91,6 +97,7 @@ typedef struct {
 /* FUNCTION DEFINITIONS */
 Square position_to_index(int x, int y);
 void setup_board(Board* board_ptr, char* fen_string);
+void generate_pseudo_moves(MoveList* move_list_ptr, Board* board_ptr);
 
 
 #endif  /* CHESS_H */

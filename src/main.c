@@ -12,5 +12,9 @@ int main(void) {
 	print_board(&board);
 	print_board_details(&board);
 
+	MoveList move_list = {};
+	generate_pseudo_moves(&move_list, &board);
+	print_move_list(&move_list);
+
 	return 0;
 }

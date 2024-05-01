@@ -8,6 +8,7 @@
 /* FUNCTION DEFINITIONS */
 void print_board(Board* board_ptr);
 void print_board_details(Board* board_ptr);
+void print_move_list(MoveList* move_list_ptr);
 
 
 #endif  /* INTERFACE_H */

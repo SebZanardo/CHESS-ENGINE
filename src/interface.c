@@ -49,3 +49,14 @@ void print_board_details(Board* board_ptr) {
 	printf("%d half moves\n", board_ptr->half_moves);
 	printf("%d full moves\n", board_ptr->full_moves);
 }
+
+
+void print_move_list(MoveList* move_list_ptr) {
+	printf("\n");
+	for (int i = 0; i < move_list_ptr->move_count; i++) {
+		printf("[%d] ", i);
+		printf("from= %d, ", move_list_ptr->moves[i].from);
+		printf("to= %d, ", move_list_ptr->moves[i].to);
+		printf("type= %d\n", move_list_ptr->moves[i].type);
+	}
+}

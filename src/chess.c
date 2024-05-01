@@ -3,6 +3,29 @@
 #include <stdlib.h>  // for atoi function
 
 
+// pawn needs custom logic for each move
+int knight_moves[8][2] = {{1, 2}, {1, -2}, {-1, 2}, {-1, -2}, {2, 1}, {2, -1}, {-2, -1}, {-2, 1}};
+int king_moves[8][2] = {{0, 1}, {0, -1}, {-1, 0}, {1, 0}, {1, 1}, {1, -1}, {-1, -1}, {-1, 1}};
+int bishop_directions[4][2] = {{1, 1}, {1, -1}, {-1, -1}, {-1, 1}};
+int rook_directions[4][2] = {{0, 1}, {0, -1}, {-1, 0}, {1, 0}};
+// queen directions is rook_directions + bishop_directions
+
+
+bool inside_board(int file, int rank) {
+	return file >= 0 && file < 8 && rank >= 0 && rank < 8;
+}
+
+
+int index_to_file(Square square) {
+	return square % 8;
+}
+
+
+int index_to_rank(Square square) {
+	return (square - (square % 8)) / 8;
+}
+
+
 Square position_to_index(int x, int y) {
 	return 64 - (y * 8 + (8 - x));
 }
@@ -18,6 +41,13 @@ void set_piece(Piece* piece_ptr, PieceType type, Colour colour, Square square, b
 	piece_ptr->colour = colour;
 	piece_ptr->square = square;
 	piece_ptr->alive = alive;
+}
+
+
+void set_move(Move* move_ptr, Square from, Square to, MoveType type) {
+	move_ptr->from = from;
+	move_ptr->to = to;
+	move_ptr->type = type;
 }
 
 
@@ -71,7 +101,7 @@ void setup_board(Board* board_ptr, char* fen_string) {
 			}
 			else {
 				// Copy piece struct to player_pieces array at next free index
-				int next = piece_len[piece.colour]++;
+				int next = ++piece_len[piece.colour];
 				board_ptr->player_pieces[piece.colour][next] = piece;
 				piece_ptr = &board_ptr->player_pieces[piece.colour][next];
 			}
@@ -123,4 +153,123 @@ void setup_board(Board* board_ptr, char* fen_string) {
 	char full_moves[digits];
 	for (int j = 0; j < digits; j++) { full_moves[j] = fen_string[i + j]; }
 	board_ptr->full_moves = atoi(full_moves);
+}
+
+
+void get_set_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_ptr, int moves[][2], int moves_len) {
+	int file = index_to_file(piece_ptr->square);
+	int rank = index_to_rank(piece_ptr->square);
+
+	int new_file, new_rank;
+	for (int i = 0; i < moves_len; i++) {
+		new_file = file + moves[i][0];
+		new_rank = rank + moves[i][1];
+
+		if (!inside_board(new_file, new_rank)) { continue; }
+
+		int target_square = coordinate_to_index(new_file, new_rank);
+		Piece* target_piece_ptr = board_ptr->squares[target_square];
+
+		Move move = {};
+		if (!target_piece_ptr) {
+			set_move(&move, piece_ptr->square, target_square, QUIET_MOVE);
+			move_list_ptr->moves[move_list_ptr->move_count++] = move;
+		}
+		else if (target_piece_ptr->colour != piece_ptr->colour) {
+			set_move(&move, piece_ptr->square, target_square, CAPTURE);
+			move_list_ptr->moves[move_list_ptr->move_count++] = move;
+		}
+	}
+}
+
+
+void get_sliding_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_ptr, int directions[][2], int directions_len) {
+	int file = index_to_file(piece_ptr->square);
+	int rank = index_to_rank(piece_ptr->square);
+
+	int new_file, new_rank;
+	for (int i = 0; i < directions_len; i++) {
+		new_file = file + directions[i][0];
+		new_rank = rank + directions[i][1];
+
+		for (int j = 0; j < 7; j++) {
+			if (!inside_board(new_file, new_rank)) { break; }
+			int target_square = coordinate_to_index(new_file, new_rank);
+			Piece* target_piece_ptr = board_ptr->squares[target_square];
+
+			Move move = {};
+			if (!target_piece_ptr) {
+				set_move(&move, piece_ptr->square, target_square, QUIET_MOVE);
+				move_list_ptr->moves[move_list_ptr->move_count++] = move;
+			}
+			else {
+				break;
+			}
+			new_file += directions[i][0];
+			new_rank += directions[i][1];
+		}
+
+		if (!inside_board(new_file, new_rank)) { continue; }
+		int target_square = coordinate_to_index(new_file, new_rank);
+		Piece* target_piece_ptr = board_ptr->squares[target_square];
+		if (target_piece_ptr && target_piece_ptr->colour != piece_ptr->colour) {
+			Move move = {};
+			set_move(&move, piece_ptr->square, target_square, CAPTURE);
+			move_list_ptr->moves[move_list_ptr->move_count++] = move;
+		}
+	}
+}
+
+
+void get_pawn_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_ptr) {
+}
+
+
+void get_knight_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_ptr) {
+	get_set_moves(move_list_ptr, board_ptr, piece_ptr, knight_moves, 8);
+}
+
+
+void get_bishop_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_ptr) {
+	get_sliding_moves(move_list_ptr, board_ptr, piece_ptr, bishop_directions, 4);
+}
+
+
+void get_rook_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_ptr) {
+	get_sliding_moves(move_list_ptr, board_ptr, piece_ptr, rook_directions, 4);
+}
+
+
+void get_queen_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_ptr) {
+	get_sliding_moves(move_list_ptr, board_ptr, piece_ptr, bishop_directions, 4);
+	get_sliding_moves(move_list_ptr, board_ptr, piece_ptr, rook_directions, 4);
+}
+
+
+void get_king_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_ptr) {
+	get_set_moves(move_list_ptr, board_ptr, piece_ptr, king_moves, 8);
+}
+
+
+void generate_piece_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_ptr) {
+	switch (piece_ptr->type) {
+		case PAWN: get_pawn_moves(move_list_ptr, board_ptr, piece_ptr); break;
+		case KNIGHT: get_knight_moves(move_list_ptr, board_ptr, piece_ptr); break;
+		case BISHOP: get_bishop_moves(move_list_ptr, board_ptr, piece_ptr); break;
+		case ROOK: get_rook_moves(move_list_ptr, board_ptr, piece_ptr); break;
+		case QUEEN: get_queen_moves(move_list_ptr, board_ptr, piece_ptr); break;
+		case KING: get_king_moves(move_list_ptr, board_ptr, piece_ptr); break;
+	}
+}
+
+
+void generate_pseudo_moves(MoveList* move_list_ptr, Board* board_ptr) {
+	Piece* piece_ptr;
+	for (int i = 0; i < 16; i++) {
+		piece_ptr = &board_ptr->player_pieces[board_ptr->current_turn][i];
+		if (!piece_ptr) {
+			break;
+		}
+		generate_piece_moves(move_list_ptr, board_ptr, piece_ptr);
+	}
 }
