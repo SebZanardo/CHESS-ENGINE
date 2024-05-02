@@ -60,3 +60,18 @@ void print_move_list(MoveList* move_list_ptr) {
 		printf("type= %d\n", move_list_ptr->moves[i].type);
 	}
 }
+
+
+int get_move_index(MoveList* move_list_ptr) {
+	int i;
+	// Trap in loop until user gives valid response
+	while (1) {
+		printf("Enter move index: ");
+		scanf("%d", &i);
+
+		if (i >= 0 && i < move_list_ptr->move_count) {
+			break;
+		}
+	}
+	return i;
+}

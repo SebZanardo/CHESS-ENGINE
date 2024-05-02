@@ -161,21 +161,23 @@ void get_set_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_ptr, 
 	int rank = index_to_rank(piece_ptr->square);
 
 	int new_file, new_rank;
+	int target_square;
+	Piece* target_piece_ptr;
 	for (int i = 0; i < moves_len; i++) {
 		new_file = file + moves[i][0];
 		new_rank = rank + moves[i][1];
 
 		if (!inside_board(new_file, new_rank)) { continue; }
 
-		int target_square = coordinate_to_index(new_file, new_rank);
-		Piece* target_piece_ptr = board_ptr->squares[target_square];
+		target_square = coordinate_to_index(new_file, new_rank);
+		target_piece_ptr = board_ptr->squares[target_square];
 
 		Move move = {};
 		if (!target_piece_ptr) {
 			set_move(&move, piece_ptr->square, target_square, QUIET_MOVE);
 			move_list_ptr->moves[move_list_ptr->move_count++] = move;
 		}
-		else if (target_piece_ptr->colour != piece_ptr->colour) {
+		else if (piece_ptr->colour != target_piece_ptr->colour) {
 			set_move(&move, piece_ptr->square, target_square, CAPTURE);
 			move_list_ptr->moves[move_list_ptr->move_count++] = move;
 		}
@@ -188,14 +190,16 @@ void get_sliding_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_p
 	int rank = index_to_rank(piece_ptr->square);
 
 	int new_file, new_rank;
+	int target_square;
+	Piece* target_piece_ptr;
 	for (int i = 0; i < directions_len; i++) {
 		new_file = file + directions[i][0];
 		new_rank = rank + directions[i][1];
 
 		for (int j = 0; j < 7; j++) {
 			if (!inside_board(new_file, new_rank)) { break; }
-			int target_square = coordinate_to_index(new_file, new_rank);
-			Piece* target_piece_ptr = board_ptr->squares[target_square];
+			target_square = coordinate_to_index(new_file, new_rank);
+			target_piece_ptr = board_ptr->squares[target_square];
 
 			Move move = {};
 			if (!target_piece_ptr) {
@@ -210,9 +214,9 @@ void get_sliding_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_p
 		}
 
 		if (!inside_board(new_file, new_rank)) { continue; }
-		int target_square = coordinate_to_index(new_file, new_rank);
-		Piece* target_piece_ptr = board_ptr->squares[target_square];
-		if (target_piece_ptr && target_piece_ptr->colour != piece_ptr->colour) {
+		target_square = coordinate_to_index(new_file, new_rank);
+		target_piece_ptr = board_ptr->squares[target_square];
+		if (target_piece_ptr && piece_ptr->colour != target_piece_ptr->colour) {
 			Move move = {};
 			set_move(&move, piece_ptr->square, target_square, CAPTURE);
 			move_list_ptr->moves[move_list_ptr->move_count++] = move;
@@ -222,6 +226,68 @@ void get_sliding_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_p
 
 
 void get_pawn_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_ptr) {
+	int forward = piece_ptr->colour == WHITE ? 1 : -1;
+
+	int file = index_to_file(piece_ptr->square);
+	int rank = index_to_rank(piece_ptr->square);
+
+	int new_file, new_rank;
+
+	// Don't need to check inside board for pawn moves (still have to for captures) as if at the end then it has to promote to another piece
+	// Move forward one
+	new_file = file;
+	new_rank = rank + forward;
+
+	// Temporary whilst promotion not implemented
+	if (!inside_board(new_file, new_rank)) { return; }  
+
+	int target_square = coordinate_to_index(new_file, new_rank);
+	Piece* target_piece_ptr = board_ptr->squares[target_square];
+	if (!target_piece_ptr) {
+		Move move = {};
+		set_move(&move, piece_ptr->square, target_square, QUIET_MOVE);
+		move_list_ptr->moves[move_list_ptr->move_count++] = move;
+		
+		// Check double pawn push
+		bool on_starting_square = false;
+		if (piece_ptr->colour == WHITE && rank == 1 || piece_ptr->colour == BLACK && rank == 6) {
+			on_starting_square = true;
+		}
+		if (on_starting_square) {
+			new_rank += forward;
+			target_square = coordinate_to_index(new_file, new_rank);
+			target_piece_ptr = board_ptr->squares[target_square];
+			if (!target_piece_ptr) {
+				Move move = {};
+				set_move(&move, piece_ptr->square, target_square, DOUBLE_PAWN_PUSH);
+				move_list_ptr->moves[move_list_ptr->move_count++] = move;
+			}
+		}
+	}
+
+	// Captures
+	new_rank = rank + forward;
+
+	new_file = file + 1;
+	if (inside_board(new_file, new_rank)) {
+		target_square = coordinate_to_index(new_file, new_rank);
+		target_piece_ptr = board_ptr->squares[target_square];
+		if (target_piece_ptr && piece_ptr->colour != target_piece_ptr->colour) {
+			Move move = {};
+			set_move(&move, piece_ptr->square, target_square, CAPTURE);
+			move_list_ptr->moves[move_list_ptr->move_count++] = move;
+		}
+	}  
+	new_file = file - 1;
+	if (inside_board(new_file, new_rank)) {
+		target_square = coordinate_to_index(new_file, new_rank);
+		target_piece_ptr = board_ptr->squares[target_square];
+		if (target_piece_ptr && piece_ptr->colour != target_piece_ptr->colour) {
+			Move move = {};
+			set_move(&move, piece_ptr->square, target_square, CAPTURE);
+			move_list_ptr->moves[move_list_ptr->move_count++] = move;
+		}
+	}
 }
 
 
@@ -270,6 +336,36 @@ void generate_pseudo_moves(MoveList* move_list_ptr, Board* board_ptr) {
 		if (!piece_ptr) {
 			break;
 		}
+		if (!piece_ptr->alive) {
+			continue;
+		}
 		generate_piece_moves(move_list_ptr, board_ptr, piece_ptr);
 	}
+}
+
+
+void switch_current_turn(Board* board_ptr) {
+	if (board_ptr->current_turn == WHITE) {
+		board_ptr->current_turn = BLACK;
+	}
+	else if (board_ptr->current_turn == BLACK) {
+		board_ptr->current_turn = WHITE;
+	}
+}
+
+
+Piece* make_move(Move* move_ptr, Board* board_ptr) {
+	Piece* piece_ptr = board_ptr->squares[move_ptr->from];
+	Piece* target_ptr = board_ptr->squares[move_ptr->to];
+	
+	board_ptr->squares[piece_ptr->square] = 0;
+	piece_ptr->square = move_ptr->to;
+	board_ptr->squares[piece_ptr->square] = piece_ptr;
+
+	if (move_ptr->type == CAPTURE) {
+		target_ptr->alive = false;
+		return target_ptr;
+	}
+
+	return 0;
 }
