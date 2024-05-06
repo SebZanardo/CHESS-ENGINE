@@ -6,13 +6,14 @@
 int main(void) {
 	char* fen_string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 	Board board = {};
-	MoveList move_list = {};
+	MoveList move_list = {};  
 	setup_board(&board, fen_string);
 
 	while (1) {
 		// Generate all moves in a position for current player
 		move_list.move_count = 0;
 		generate_pseudo_moves(&move_list, &board);
+		find_legal_moves(&move_list, &board);
 
 		// Display board and moves
 		print_board(&board);

@@ -100,6 +100,7 @@ void setup_board(Board* board_ptr, char* fen_string);
 void generate_pseudo_moves(MoveList* move_list_ptr, Board* board_ptr);
 void switch_current_turn(Board* board_ptr);
 Piece* make_move(Move* move_ptr, Board* board_ptr);
+void find_legal_moves(MoveList* move_list_ptr, Board* board_ptr);
 
 
 #endif  /* CHESS_H */

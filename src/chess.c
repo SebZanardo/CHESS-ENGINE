@@ -1,5 +1,5 @@
 #include "chess.h"
-#include <stdio.h>  // for EOF
+#include <stdbool.h>  // for bool
 #include <stdlib.h>  // for atoi function
 
 
@@ -149,7 +149,7 @@ void setup_board(Board* board_ptr, char* fen_string) {
 	board_ptr->half_moves = atoi(half_moves);
 
 	i += digits + 1;
-	for (digits = 0; (c = fen_string[i+digits]) != EOF; digits++) {}
+	for (digits = 0; (c = fen_string[i+digits]); digits++) {}
 	char full_moves[digits];
 	for (int j = 0; j < digits; j++) { full_moves[j] = fen_string[i + j]; }
 	board_ptr->full_moves = atoi(full_moves);
@@ -344,13 +344,16 @@ void generate_pseudo_moves(MoveList* move_list_ptr, Board* board_ptr) {
 }
 
 
+Colour get_opponent_colour(Colour player_colour) {
+	if (player_colour == WHITE) {
+		return BLACK;
+	}
+	return WHITE;
+}
+
+
 void switch_current_turn(Board* board_ptr) {
-	if (board_ptr->current_turn == WHITE) {
-		board_ptr->current_turn = BLACK;
-	}
-	else if (board_ptr->current_turn == BLACK) {
-		board_ptr->current_turn = WHITE;
-	}
+	board_ptr->current_turn = get_opponent_colour(board_ptr->current_turn);
 }
 
 
@@ -368,4 +371,60 @@ Piece* make_move(Move* move_ptr, Board* board_ptr) {
 	}
 
 	return 0;
+}
+
+
+void undo_move(Move* move_ptr, Board* board_ptr, Piece* captured_piece_ptr) {
+	Piece* piece_ptr = board_ptr->squares[move_ptr->to];
+
+	board_ptr->squares[piece_ptr->square] = captured_piece_ptr;
+	piece_ptr->square = move_ptr->from;
+	board_ptr->squares[piece_ptr->square] = piece_ptr;
+
+	if (move_ptr->type == CAPTURE) {
+		captured_piece_ptr->alive = true;
+	}
+}
+
+
+bool is_legal(Move* move_ptr, Board* board_ptr) {
+	bool legal = true;
+
+	// Play move on board
+	Piece* captured_piece_ptr = make_move(move_ptr, board_ptr);
+	switch_current_turn(board_ptr);
+	
+	// Generate pseudo-legal moves for opponent
+	MoveList opponent_move_list = {};
+	generate_pseudo_moves(&opponent_move_list, board_ptr);
+	
+	switch_current_turn(board_ptr);
+
+	// Check if current player's king is under attack
+	for (int i = 0; i < opponent_move_list.move_count; i++) {
+		Square king_square = board_ptr->player_pieces[board_ptr->current_turn][0].square;
+		if (opponent_move_list.moves[i].to == king_square) {
+			legal = false;
+			break;
+		}
+	}
+	
+	// Undo move on board
+	undo_move(move_ptr, board_ptr, captured_piece_ptr);
+
+	return legal;
+}
+
+
+void find_legal_moves(MoveList* move_list_ptr, Board* board_ptr) {
+	int legal_moves = 0;
+	for (int i = 0; i < move_list_ptr->move_count; i++) {
+		if (is_legal(&move_list_ptr->moves[i], board_ptr)) {
+			if (i != legal_moves) {
+				move_list_ptr->moves[legal_moves] = move_list_ptr->moves[i];
+			}
+			legal_moves++;
+		}
+	}
+	move_list_ptr->move_count = legal_moves;
 }
