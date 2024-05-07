@@ -1,5 +1,6 @@
-#include <stdio.h>
+#include <stdio.h>  // for scanf and printf
 #include "chess.h"
+#include "board.h"
 
 
 char piece_symbol_table[2][6] = {
@@ -62,6 +63,7 @@ void print_move_list(MoveList* move_list_ptr) {
 }
 
 
+/* FIXME: Stop infinite looping if input did not contain a number */
 int get_move_index(MoveList* move_list_ptr) {
 	int i;
 	// Trap in loop until user gives valid response

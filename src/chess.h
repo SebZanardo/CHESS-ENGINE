@@ -95,12 +95,9 @@ typedef struct {
 
 
 /* FUNCTION DEFINITIONS */
-Square position_to_index(int x, int y);
-void setup_board(Board* board_ptr, char* fen_string);
-void generate_pseudo_moves(MoveList* move_list_ptr, Board* board_ptr);
-void switch_current_turn(Board* board_ptr);
 Piece* make_move(Move* move_ptr, Board* board_ptr);
-void find_legal_moves(MoveList* move_list_ptr, Board* board_ptr);
+void undo_move(Move* move_ptr, Board* board_ptr, Piece* captured_piece_ptr);
+void play_game();
 
 
 #endif  /* CHESS_H */
