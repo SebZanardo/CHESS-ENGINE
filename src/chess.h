@@ -11,7 +11,7 @@ typedef enum {
 } Colour;
 
 
-/* Value = Index of square in Board.squares */
+/* Value = Index of square */
 typedef enum {
 	A1, B1, C1, D1, E1, F1, G1, H1,
 	A2, B2, C2, D2, E2, F2, G2, H2,
@@ -67,7 +67,7 @@ typedef struct {
 
 
 typedef struct {
-	Move moves[218];  // 218 is the maximum number of moves in a chess position
+	Move moves[218];  // 218 is the maximum number of moves valid position
 	int move_count;
 } MoveList;
 
@@ -80,7 +80,6 @@ typedef struct {
 } Piece;
 
 
-/* TODO: Alter to handle any number of players */
 typedef struct {
 	Piece* squares[64];
 	Piece player_pieces[2][16];

@@ -3,12 +3,12 @@
 #include "board.h"
 
 
-// pawn needs custom logic for each move
+// Pawns needs custom logic for each move
 int knight_moves[8][2] = {{1, 2}, {1, -2}, {-1, 2}, {-1, -2}, {2, 1}, {2, -1}, {-2, -1}, {-2, 1}};
 int king_moves[8][2] = {{0, 1}, {0, -1}, {-1, 0}, {1, 0}, {1, 1}, {1, -1}, {-1, -1}, {-1, 1}};
 int bishop_directions[4][2] = {{1, 1}, {1, -1}, {-1, -1}, {-1, 1}};
 int rook_directions[4][2] = {{0, 1}, {0, -1}, {-1, 0}, {1, 0}};
-// queen directions is rook_directions + bishop_directions
+// Queens directions are just rook_directions + bishop_directions
 
 
 void set_move(Move* move_ptr, Square from, Square to, MoveType type) {
@@ -16,6 +16,7 @@ void set_move(Move* move_ptr, Square from, Square to, MoveType type) {
 	move_ptr->to = to;
 	move_ptr->type = type;
 }
+
 
 void get_set_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_ptr, int moves[][2], int moves_len) {
 	int file = index_to_file(piece_ptr->square);
@@ -33,12 +34,13 @@ void get_set_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_ptr, 
 		target_square = coordinate_to_index(new_file, new_rank);
 		target_piece_ptr = board_ptr->squares[target_square];
 
-		Move move = {};
 		if (!target_piece_ptr) {
+			Move move = {};
 			set_move(&move, piece_ptr->square, target_square, QUIET_MOVE);
 			move_list_ptr->moves[move_list_ptr->move_count++] = move;
 		}
 		else if (piece_ptr->colour != target_piece_ptr->colour) {
+			Move move = {};
 			set_move(&move, piece_ptr->square, target_square, CAPTURE);
 			move_list_ptr->moves[move_list_ptr->move_count++] = move;
 		}
@@ -62,8 +64,8 @@ void get_sliding_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_p
 			target_square = coordinate_to_index(new_file, new_rank);
 			target_piece_ptr = board_ptr->squares[target_square];
 
-			Move move = {};
 			if (!target_piece_ptr) {
+				Move move = {};
 				set_move(&move, piece_ptr->square, target_square, QUIET_MOVE);
 				move_list_ptr->moves[move_list_ptr->move_count++] = move;
 			}
@@ -181,12 +183,24 @@ void get_king_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_ptr)
 
 void generate_piece_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_ptr) {
 	switch (piece_ptr->type) {
-		case PAWN: get_pawn_moves(move_list_ptr, board_ptr, piece_ptr); break;
-		case KNIGHT: get_knight_moves(move_list_ptr, board_ptr, piece_ptr); break;
-		case BISHOP: get_bishop_moves(move_list_ptr, board_ptr, piece_ptr); break;
-		case ROOK: get_rook_moves(move_list_ptr, board_ptr, piece_ptr); break;
-		case QUEEN: get_queen_moves(move_list_ptr, board_ptr, piece_ptr); break;
-		case KING: get_king_moves(move_list_ptr, board_ptr, piece_ptr); break;
+		case PAWN: 
+			get_pawn_moves(move_list_ptr, board_ptr, piece_ptr);
+			break;
+		case KNIGHT:
+			get_knight_moves(move_list_ptr, board_ptr, piece_ptr);
+			break;
+		case BISHOP:
+			get_bishop_moves(move_list_ptr, board_ptr, piece_ptr);
+			break;
+		case ROOK:
+			get_rook_moves(move_list_ptr, board_ptr, piece_ptr);
+			break;
+		case QUEEN:
+			get_queen_moves(move_list_ptr, board_ptr, piece_ptr);
+			break;
+		case KING:
+			get_king_moves(move_list_ptr, board_ptr, piece_ptr);
+			break;
 	}
 }
 

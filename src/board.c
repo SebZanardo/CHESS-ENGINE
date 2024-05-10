@@ -57,14 +57,14 @@ void symbol_to_piece_init(Piece* piece_ptr, char symbol, Square square) {
 /* TODO: Add error handling for invalid FEN strings */
 // rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
 void setup_board(Board* board_ptr, char* fen_string) {
-	// To keep track of which index of player_pieces to write the next piece to
+	// To keep track of next free index in player_pieces
 	int piece_len[2] = {0};
 
-	int y = 0;
 	int x = 0;
+	int y = 0;
 	
 	int i, c;
-	// Loop through board fen_string characters and setup board
+	// Read and setup board and pieces from fen string
 	for (i = 0; (c = fen_string[i]) != ' '; i++) {
 		if (c == '/') {
 			y++;
@@ -80,17 +80,17 @@ void setup_board(Board* board_ptr, char* fen_string) {
 			symbol_to_piece_init(&piece, c, square);
 
 			if (piece.type == KING) {
-				// Copy struct to player_pieces array at first index
+				// Copy piece to player_pieces at first index
 				board_ptr->player_pieces[piece.colour][0] = piece;
 				piece_ptr = &board_ptr->player_pieces[piece.colour][0];
 			}
 			else {
-				// Copy piece struct to player_pieces array at next free index
+				// Copy piece to player_pieces at next free index
 				int next = ++piece_len[piece.colour];
 				board_ptr->player_pieces[piece.colour][next] = piece;
 				piece_ptr = &board_ptr->player_pieces[piece.colour][next];
 			}
-			// Board.squares points to copied piece in player_pieces array
+			// Board square points to piece in player_pieces array
 			board_ptr->squares[square] = piece_ptr;
 			x++;
 		}
@@ -108,10 +108,18 @@ void setup_board(Board* board_ptr, char* fen_string) {
 	board_ptr->castling_rights[BLACK][QUEENSIDE] = false;
 	for (i += 2; (c = fen_string[i]) != ' '; i++) {
 		switch (c) {
-			case 'K': board_ptr->castling_rights[WHITE][KINGSIDE] = true; break;
-			case 'Q': board_ptr->castling_rights[WHITE][QUEENSIDE] = true; break;
-			case 'k': board_ptr->castling_rights[BLACK][KINGSIDE] = true; break;
-			case 'q': board_ptr->castling_rights[BLACK][QUEENSIDE] = true; break;
+			case 'K': 
+				board_ptr->castling_rights[WHITE][KINGSIDE] = true; 
+				break;
+			case 'Q':
+				board_ptr->castling_rights[WHITE][QUEENSIDE] = true;
+				break;
+			case 'k':
+				board_ptr->castling_rights[BLACK][KINGSIDE] = true;
+				break;
+			case 'q':
+				board_ptr->castling_rights[BLACK][QUEENSIDE] = true;
+				break;
 		}
 	}
 
@@ -125,7 +133,7 @@ void setup_board(Board* board_ptr, char* fen_string) {
 		board_ptr->en_passant_target = coordinate_to_index(file, rank);
 	}
 
-	// Read and setup half move and full moves from fen string
+	// Read and setup half moves and full moves from fen string
 	i += 2;
 	int digits;
 	for (digits = 0; (c = fen_string[i+digits]) != ' '; digits++) {}

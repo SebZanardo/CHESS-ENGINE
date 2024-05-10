@@ -43,7 +43,7 @@ void play_game() {
 
 	while (1) {
 		// Generate all moves in a position for current player
-		move_list.move_count = 0;
+		move_list.move_count = 0;  // Instead of clearing moves
 		generate_pseudo_moves(&move_list, &board);
 		find_legal_moves(&move_list, &board);
 

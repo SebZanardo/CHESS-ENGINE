@@ -69,7 +69,7 @@ int get_move_index(MoveList* move_list_ptr) {
 	while (1) {
 		printf("Enter move index: ");
 		scanf("%d", &i);
-		while (getchar() != '\n');
+		while (getchar() != '\n');  // Clear the input buffer
 		if (i >= 0 && i < move_list_ptr->move_count) {
 			break;
 		}
