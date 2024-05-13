@@ -88,6 +88,32 @@ void get_sliding_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_p
 }
 
 
+void add_pawn_promotions(MoveList* move_list_ptr, Board* board_ptr, Square from, Square to) {
+	Move move = {};
+	set_move(&move, from, to, PROMOTION_QUEEN);
+	move_list_ptr->moves[move_list_ptr->move_count++] = move;
+	set_move(&move, from, to, PROMOTION_ROOK);
+	move_list_ptr->moves[move_list_ptr->move_count++] = move;
+	set_move(&move, from, to, PROMOTION_BISHOP);
+	move_list_ptr->moves[move_list_ptr->move_count++] = move;
+	set_move(&move, from, to, PROMOTION_KNIGHT);
+	move_list_ptr->moves[move_list_ptr->move_count++] = move;
+}
+
+
+void add_pawn_capture_promotions(MoveList* move_list_ptr, Board* board_ptr, Square from, Square to) {
+	Move move = {};
+	set_move(&move, from, to, CAPTURE_PROMOTION_QUEEN);
+	move_list_ptr->moves[move_list_ptr->move_count++] = move;
+	set_move(&move, from, to, CAPTURE_PROMOTION_ROOK);
+	move_list_ptr->moves[move_list_ptr->move_count++] = move;
+	set_move(&move, from, to, CAPTURE_PROMOTION_BISHOP);
+	move_list_ptr->moves[move_list_ptr->move_count++] = move;
+	set_move(&move, from, to, CAPTURE_PROMOTION_KNIGHT);
+	move_list_ptr->moves[move_list_ptr->move_count++] = move;
+}
+
+
 void get_pawn_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_ptr) {
 	int forward = piece_ptr->colour == WHITE ? 1 : -1;
 
@@ -102,29 +128,32 @@ void get_pawn_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_ptr)
 	new_file = file;
 	new_rank = rank + forward;
 
-	/* HACK: Whilst pawn promotion not implemented */
-	if (!inside_board(new_file, new_rank)) { return; }
-
 	int target_square = coordinate_to_index(new_file, new_rank);
 	Piece* target_piece_ptr = board_ptr->squares[target_square];
 	if (!target_piece_ptr) {
-		Move move = {};
-		set_move(&move, piece_ptr->square, target_square, QUIET_MOVE);
-		move_list_ptr->moves[move_list_ptr->move_count++] = move;
-		
-		// Check for double pawn push
-		bool on_starting_square = false;
-		if (piece_ptr->colour == WHITE && rank == 1 || piece_ptr->colour == BLACK && rank == 6) {
-			on_starting_square = true;
+		// Check for pawn promotion
+		if (piece_ptr->colour == WHITE && new_rank == 7 || piece_ptr->colour == BLACK && new_rank == 0){
+			add_pawn_promotions(move_list_ptr, board_ptr, piece_ptr->square, target_square);
 		}
-		if (on_starting_square) {
-			new_rank += forward;
-			target_square = coordinate_to_index(new_file, new_rank);
-			target_piece_ptr = board_ptr->squares[target_square];
-			if (!target_piece_ptr) {
-				Move move = {};
-				set_move(&move, piece_ptr->square, target_square, DOUBLE_PAWN_PUSH);
-				move_list_ptr->moves[move_list_ptr->move_count++] = move;
+		else {
+			Move move = {};
+			set_move(&move, piece_ptr->square, target_square, QUIET_MOVE);
+			move_list_ptr->moves[move_list_ptr->move_count++] = move;
+			
+			// Check for double pawn push
+			bool on_starting_square = false;
+			if (piece_ptr->colour == WHITE && rank == 1 || piece_ptr->colour == BLACK && rank == 6) {
+				on_starting_square = true;
+			}
+			if (on_starting_square) {
+				new_rank += forward;
+				target_square = coordinate_to_index(new_file, new_rank);
+				target_piece_ptr = board_ptr->squares[target_square];
+				if (!target_piece_ptr) {
+					Move move = {};
+					set_move(&move, piece_ptr->square, target_square, DOUBLE_PAWN_PUSH);
+					move_list_ptr->moves[move_list_ptr->move_count++] = move;
+				}
 			}
 		}
 	}
@@ -137,9 +166,15 @@ void get_pawn_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_ptr)
 		target_square = coordinate_to_index(new_file, new_rank);
 		target_piece_ptr = board_ptr->squares[target_square];
 		if (target_piece_ptr && piece_ptr->colour != target_piece_ptr->colour) {
-			Move move = {};
-			set_move(&move, piece_ptr->square, target_square, CAPTURE);
-			move_list_ptr->moves[move_list_ptr->move_count++] = move;
+			// Check for pawn capture promotion
+			if (piece_ptr->colour == WHITE && new_rank == 7 || piece_ptr->colour == BLACK && new_rank == 0){
+				add_pawn_capture_promotions(move_list_ptr, board_ptr, piece_ptr->square, target_square);
+			}
+			else {
+				Move move = {};
+				set_move(&move, piece_ptr->square, target_square, CAPTURE);
+				move_list_ptr->moves[move_list_ptr->move_count++] = move;
+			}
 		}
 	}  
 	new_file = file - 1;
@@ -147,9 +182,15 @@ void get_pawn_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_ptr)
 		target_square = coordinate_to_index(new_file, new_rank);
 		target_piece_ptr = board_ptr->squares[target_square];
 		if (target_piece_ptr && piece_ptr->colour != target_piece_ptr->colour) {
-			Move move = {};
-			set_move(&move, piece_ptr->square, target_square, CAPTURE);
-			move_list_ptr->moves[move_list_ptr->move_count++] = move;
+			// Check for pawn capture promotion
+			if (piece_ptr->colour == WHITE && new_rank == 7 || piece_ptr->colour == BLACK && new_rank == 0){
+				add_pawn_capture_promotions(move_list_ptr, board_ptr, piece_ptr->square, target_square);
+			}
+			else {
+				Move move = {};
+				set_move(&move, piece_ptr->square, target_square, CAPTURE);
+				move_list_ptr->moves[move_list_ptr->move_count++] = move;
+			}
 		}
 	}
 }

@@ -5,6 +5,34 @@
 #include "interface.h"
 
 
+void perform_promotion(Piece* piece_ptr, MoveType move_type) {
+	if (move_type == PROMOTION_KNIGHT || move_type == CAPTURE_PROMOTION_KNIGHT) {
+		piece_ptr->type = KNIGHT;
+	}
+	else if (move_type == PROMOTION_BISHOP || move_type == CAPTURE_PROMOTION_BISHOP) {
+		piece_ptr->type = BISHOP;
+	}
+	else if (move_type == PROMOTION_ROOK || move_type == CAPTURE_PROMOTION_ROOK) {
+		piece_ptr->type = ROOK;
+	}
+	else if (move_type == PROMOTION_QUEEN || move_type == CAPTURE_PROMOTION_QUEEN) {
+		piece_ptr->type = QUEEN;
+	}
+}
+
+
+void unperform_promotion(Piece* piece_ptr, MoveType move_type) {
+	if (
+	move_type == PROMOTION_KNIGHT || move_type == CAPTURE_PROMOTION_KNIGHT || 
+	move_type == PROMOTION_BISHOP || move_type == CAPTURE_PROMOTION_BISHOP ||
+	move_type == PROMOTION_ROOK || move_type == CAPTURE_PROMOTION_ROOK ||
+	move_type == PROMOTION_QUEEN || move_type == CAPTURE_PROMOTION_QUEEN
+	) {
+		piece_ptr->type = PAWN;
+	}
+}
+
+
 Piece* make_move(Move* move_ptr, Board* board_ptr) {
 	Piece* piece_ptr = board_ptr->squares[move_ptr->from];
 	Piece* target_ptr = board_ptr->squares[move_ptr->to];
@@ -13,7 +41,9 @@ Piece* make_move(Move* move_ptr, Board* board_ptr) {
 	piece_ptr->square = move_ptr->to;
 	board_ptr->squares[piece_ptr->square] = piece_ptr;
 
-	if (move_ptr->type == CAPTURE) {
+	perform_promotion(piece_ptr, move_ptr->type);
+
+	if (target_ptr) {
 		target_ptr->alive = false;
 		return target_ptr;
 	}
@@ -29,7 +59,9 @@ void undo_move(Move* move_ptr, Board* board_ptr, Piece* captured_piece_ptr) {
 	piece_ptr->square = move_ptr->from;
 	board_ptr->squares[piece_ptr->square] = piece_ptr;
 
-	if (move_ptr->type == CAPTURE) {
+	unperform_promotion(piece_ptr, move_ptr->type);
+
+	if (captured_piece_ptr) {
 		captured_piece_ptr->alive = true;
 	}
 }
