@@ -3,12 +3,12 @@
 #include "board.h"
 
 
-// Pawns needs custom logic for each move
+// Pawn's needs custom logic for each move
 int knight_moves[8][2] = {{1, 2}, {1, -2}, {-1, 2}, {-1, -2}, {2, 1}, {2, -1}, {-2, -1}, {-2, 1}};
 int king_moves[8][2] = {{0, 1}, {0, -1}, {-1, 0}, {1, 0}, {1, 1}, {1, -1}, {-1, -1}, {-1, 1}};
 int bishop_directions[4][2] = {{1, 1}, {1, -1}, {-1, -1}, {-1, 1}};
 int rook_directions[4][2] = {{0, 1}, {0, -1}, {-1, 0}, {1, 0}};
-// Queens directions are just rook_directions + bishop_directions
+// Queen's directions are just rook_directions + bishop_directions
 
 
 void set_move(Move* move_ptr, Square from, Square to, MoveType type) {
@@ -176,7 +176,14 @@ void get_pawn_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_ptr)
 				move_list_ptr->moves[move_list_ptr->move_count++] = move;
 			}
 		}
+		// Check for en passant capture
+		else if (target_square == board_ptr->en_passant_target) {
+			Move move = {};
+			set_move(&move, piece_ptr->square, board_ptr->en_passant_target, EN_PASSANT);
+			move_list_ptr->moves[move_list_ptr->move_count++] = move;
+		}
 	}  
+
 	new_file = file - 1;
 	if (inside_board(new_file, new_rank)) {
 		target_square = coordinate_to_index(new_file, new_rank);
@@ -191,6 +198,12 @@ void get_pawn_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_ptr)
 				set_move(&move, piece_ptr->square, target_square, CAPTURE);
 				move_list_ptr->moves[move_list_ptr->move_count++] = move;
 			}
+		}
+		// Check for en passant capture
+		else if (target_square == board_ptr->en_passant_target) {
+			Move move = {};
+			set_move(&move, piece_ptr->square, board_ptr->en_passant_target, EN_PASSANT);
+			move_list_ptr->moves[move_list_ptr->move_count++] = move;
 		}
 	}
 }
@@ -219,6 +232,8 @@ void get_queen_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_ptr
 
 void get_king_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_ptr) {
 	get_set_moves(move_list_ptr, board_ptr, piece_ptr, king_moves, 8);
+	// TODO: Add castling moves
+	// - Check if board says can castle in direction and squares are free
 }
 
 
@@ -263,16 +278,26 @@ void generate_pseudo_moves(MoveList* move_list_ptr, Board* board_ptr) {
 
 bool is_legal(Move* move_ptr, Board* board_ptr) {
 	bool legal = true;
+	Colour king_colour = board_ptr->current_turn;
 
 	// Play move on board
 	Piece* captured_piece_ptr = make_move(move_ptr, board_ptr);
-	Colour king_colour = board_ptr->current_turn;
-	switch_current_turn(board_ptr);
+
+	// Save irreversible board data
+	bool saved_castling_rights[2][2] = {};
+	saved_castling_rights[WHITE][KINGSIDE] = board_ptr->castling_rights[WHITE][KINGSIDE];
+	saved_castling_rights[WHITE][QUEENSIDE] = board_ptr->castling_rights[WHITE][QUEENSIDE];
+	saved_castling_rights[BLACK][KINGSIDE] = board_ptr->castling_rights[BLACK][KINGSIDE];
+	saved_castling_rights[BLACK][QUEENSIDE] = board_ptr->castling_rights[BLACK][QUEENSIDE];
+	Square saved_en_passant_target = board_ptr->en_passant_target;
+
+	/* TODO: Update castling rights */
+	update_en_passant_target(move_ptr, board_ptr);
 	
 	// Generate pseudo-legal moves for opponent
+	switch_current_turn(board_ptr);
 	MoveList opponent_move_list = {};
 	generate_pseudo_moves(&opponent_move_list, board_ptr);
-	
 
 	// Check if current player's king is under attack
 	for (int i = 0; i < opponent_move_list.move_count; i++) {
@@ -282,10 +307,17 @@ bool is_legal(Move* move_ptr, Board* board_ptr) {
 			break;
 		}
 	}
-	
+
 	// Undo move on board
-	undo_move(move_ptr, board_ptr, captured_piece_ptr);
 	switch_current_turn(board_ptr);
+	undo_move(move_ptr, board_ptr, captured_piece_ptr);
+
+	// Overwrite irreversible board data with saved data
+	board_ptr->castling_rights[WHITE][KINGSIDE] = saved_castling_rights[WHITE][KINGSIDE];
+	board_ptr->castling_rights[WHITE][QUEENSIDE] = saved_castling_rights[WHITE][QUEENSIDE];
+	board_ptr->castling_rights[BLACK][KINGSIDE] = saved_castling_rights[BLACK][KINGSIDE];
+	board_ptr->castling_rights[BLACK][QUEENSIDE] = saved_castling_rights[BLACK][QUEENSIDE];
+	board_ptr->en_passant_target = saved_en_passant_target;
 
 	return legal;
 }
@@ -295,6 +327,7 @@ void find_legal_moves(MoveList* move_list_ptr, Board* board_ptr) {
 	int legal_moves = 0;
 	for (int i = 0; i < move_list_ptr->move_count; i++) {
 		if (is_legal(&move_list_ptr->moves[i], board_ptr)) {
+			// Only re-assign move index if there was an illegal move before it
 			if (i != legal_moves) {
 				move_list_ptr->moves[legal_moves] = move_list_ptr->moves[i];
 			}

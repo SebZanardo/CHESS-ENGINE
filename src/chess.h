@@ -96,6 +96,7 @@ typedef struct {
 /* FUNCTION DEFINITIONS */
 Piece* make_move(Move* move_ptr, Board* board_ptr);
 void undo_move(Move* move_ptr, Board* board_ptr, Piece* captured_piece_ptr);
+void update_en_passant_target(Move* move_ptr, Board* board_ptr);
 void play_game();
 
 
