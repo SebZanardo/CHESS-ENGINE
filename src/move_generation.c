@@ -230,10 +230,45 @@ void get_queen_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_ptr
 }
 
 
+void add_castling_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_ptr) {
+	if (piece_ptr->colour == WHITE) {
+		if (board_ptr->castling_rights[WHITE][KINGSIDE]) {
+			if (!board_ptr->squares[F1] && !board_ptr->squares[G1]) {
+				Move move = {};
+				set_move(&move, piece_ptr->square, G1, CASTLE_KINGSIDE);
+				move_list_ptr->moves[move_list_ptr->move_count++] = move;
+			}
+		}
+		if (board_ptr->castling_rights[WHITE][QUEENSIDE]) {
+			if (!board_ptr->squares[D1] && !board_ptr->squares[C1] && !board_ptr->squares[B1]) {
+				Move move = {};
+				set_move(&move, piece_ptr->square, C1, CASTLE_QUEENSIDE);
+				move_list_ptr->moves[move_list_ptr->move_count++] = move;
+			}
+		}
+	}
+	else {
+		if (board_ptr->castling_rights[BLACK][KINGSIDE]) {
+			if (!board_ptr->squares[F8] && !board_ptr->squares[G8]) {
+				Move move = {};
+				set_move(&move, piece_ptr->square, G8, CASTLE_KINGSIDE);
+				move_list_ptr->moves[move_list_ptr->move_count++] = move;
+			}
+		}
+		if (board_ptr->castling_rights[BLACK][QUEENSIDE]) {
+			if (!board_ptr->squares[D8] && !board_ptr->squares[C8] && !board_ptr->squares[B8]) {
+				Move move = {};
+				set_move(&move, piece_ptr->square, C8, CASTLE_QUEENSIDE);
+				move_list_ptr->moves[move_list_ptr->move_count++] = move;
+			}
+		}
+	}
+}
+
+
 void get_king_moves(MoveList* move_list_ptr, Board* board_ptr, Piece* piece_ptr) {
 	get_set_moves(move_list_ptr, board_ptr, piece_ptr, king_moves, 8);
-	// TODO: Add castling moves
-	// - Check if board says can castle in direction and squares are free
+	add_castling_moves(move_list_ptr, board_ptr, piece_ptr);
 }
 
 
@@ -276,48 +311,87 @@ void generate_pseudo_moves(MoveList* move_list_ptr, Board* board_ptr) {
 }
 
 
+bool in_check(Move* move_ptr, Board* board_ptr, MoveList* opponent_move_list_ptr, Colour king_colour) {
+	// Cannot castle in, through or into check
+	if (move_ptr->type == CASTLE_KINGSIDE && king_colour == WHITE) {
+		for (int i = 0; i < opponent_move_list_ptr->move_count; i++) {
+			Move* opponent_move = &opponent_move_list_ptr->moves[i];
+			if (opponent_move->to == E1 || opponent_move->to == F1 || opponent_move->to == G1) {
+				return false;
+			}
+		}
+	}
+	else if (move_ptr->type == CASTLE_QUEENSIDE && king_colour == WHITE) {
+		for (int i = 0; i < opponent_move_list_ptr->move_count; i++) {
+			Move* opponent_move = &opponent_move_list_ptr->moves[i];
+			if (opponent_move->to == E1 || opponent_move->to == D1 || opponent_move->to == C1) {
+				return false;
+			}
+		}
+	}
+	else if (move_ptr->type == CASTLE_KINGSIDE && king_colour == BLACK) {
+		for (int i = 0; i < opponent_move_list_ptr->move_count; i++) {
+			Move* opponent_move = &opponent_move_list_ptr->moves[i];
+			if (opponent_move->to == E8 || opponent_move->to == F8 || opponent_move->to == G8) {
+				return false;
+			}
+		}
+	}
+	else if (move_ptr->type == CASTLE_QUEENSIDE && king_colour == BLACK) {
+		for (int i = 0; i < opponent_move_list_ptr->move_count; i++) {
+			Move* opponent_move = &opponent_move_list_ptr->moves[i];
+			if (opponent_move->to == E8 || opponent_move->to == D8 || opponent_move->to == C8) {
+				return false;
+			}
+		}
+	}
+	// Just check if king is under attack after move played
+	else {
+		for (int i = 0; i < opponent_move_list_ptr->move_count; i++) {
+			Square king_square = board_ptr->player_pieces[king_colour][0].square;
+			if (opponent_move_list_ptr->moves[i].to == king_square) {
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+
 bool is_legal(Move* move_ptr, Board* board_ptr) {
-	bool legal = true;
 	Colour king_colour = board_ptr->current_turn;
 
 	// Play move on board
 	Piece* captured_piece_ptr = make_move(move_ptr, board_ptr);
 
 	// Save irreversible board data
+	Square saved_en_passant_target = board_ptr->en_passant_target;
 	bool saved_castling_rights[2][2] = {};
 	saved_castling_rights[WHITE][KINGSIDE] = board_ptr->castling_rights[WHITE][KINGSIDE];
 	saved_castling_rights[WHITE][QUEENSIDE] = board_ptr->castling_rights[WHITE][QUEENSIDE];
 	saved_castling_rights[BLACK][KINGSIDE] = board_ptr->castling_rights[BLACK][KINGSIDE];
 	saved_castling_rights[BLACK][QUEENSIDE] = board_ptr->castling_rights[BLACK][QUEENSIDE];
-	Square saved_en_passant_target = board_ptr->en_passant_target;
 
-	/* TODO: Update castling rights */
 	update_en_passant_target(move_ptr, board_ptr);
+	update_castling_rights(move_ptr, board_ptr);
 	
 	// Generate pseudo-legal moves for opponent
 	switch_current_turn(board_ptr);
 	MoveList opponent_move_list = {};
 	generate_pseudo_moves(&opponent_move_list, board_ptr);
 
-	// Check if current player's king is under attack
-	for (int i = 0; i < opponent_move_list.move_count; i++) {
-		Square king_square = board_ptr->player_pieces[king_colour][0].square;
-		if (opponent_move_list.moves[i].to == king_square) {
-			legal = false;
-			break;
-		}
-	}
+	bool legal = in_check(move_ptr, board_ptr, &opponent_move_list, king_colour);
 
 	// Undo move on board
 	switch_current_turn(board_ptr);
 	undo_move(move_ptr, board_ptr, captured_piece_ptr);
 
 	// Overwrite irreversible board data with saved data
+	board_ptr->en_passant_target = saved_en_passant_target;
 	board_ptr->castling_rights[WHITE][KINGSIDE] = saved_castling_rights[WHITE][KINGSIDE];
 	board_ptr->castling_rights[WHITE][QUEENSIDE] = saved_castling_rights[WHITE][QUEENSIDE];
 	board_ptr->castling_rights[BLACK][KINGSIDE] = saved_castling_rights[BLACK][KINGSIDE];
 	board_ptr->castling_rights[BLACK][QUEENSIDE] = saved_castling_rights[BLACK][QUEENSIDE];
-	board_ptr->en_passant_target = saved_en_passant_target;
 
 	return legal;
 }
