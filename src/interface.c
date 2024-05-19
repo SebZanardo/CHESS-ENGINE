@@ -3,6 +3,18 @@
 #include "board.h"
 
 
+char* square_name[] = {
+	"A1", "B1", "C1", "D1", "E1", "F1", "G1", "H1", 
+	"A2", "B2", "C2", "D2", "E2", "F2", "G2", "H2", 
+	"A3", "B3", "C3", "D3", "E3", "F3", "G3", "H3", 
+	"A4", "B4", "C4", "D4", "E4", "F4", "G4", "H4", 
+	"A5", "B5", "C5", "D5", "E5", "F5", "G5", "H5", 
+	"A6", "B6", "C6", "D6", "E6", "F6", "G6", "H6", 
+	"A7", "B7", "C7", "D7", "E7", "F7", "G7", "H7", 
+	"A8", "B8", "C8", "D8", "E8", "F8", "G8", "H8",
+};
+
+
 char piece_symbol_table[2][6] = {
 	{'P', 'N', 'B', 'R', 'Q', 'K'},
 	{'p', 'n', 'b', 'r', 'q', 'k'},
@@ -56,8 +68,8 @@ void print_move_list(MoveList* move_list_ptr) {
 	printf("\n");
 	for (int i = 0; i < move_list_ptr->move_count; i++) {
 		printf("[%d] ", i);
-		printf("from= %d, ", move_list_ptr->moves[i].from);
-		printf("to= %d, ", move_list_ptr->moves[i].to);
+		printf("from= %s, ", square_name[move_list_ptr->moves[i].from]);
+		printf("to= %s, ", square_name[move_list_ptr->moves[i].to]);
 		printf("type= %d\n", move_list_ptr->moves[i].type);
 	}
 }
