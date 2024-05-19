@@ -104,7 +104,7 @@ void unperform_castle(MoveType move_type, Board* board_ptr) {
 	else if (move_type == CASTLE_KINGSIDE && board_ptr->current_turn == BLACK) {
 		board_ptr->squares[H8] = board_ptr->squares[F8];
 		board_ptr->squares[F8] = 0;
-		board_ptr->squares[H1]->square = H1;
+		board_ptr->squares[H8]->square = H8;
 	}
 	else if (move_type == CASTLE_QUEENSIDE && board_ptr->current_turn == BLACK) {
 		board_ptr->squares[A8] = board_ptr->squares[D8];

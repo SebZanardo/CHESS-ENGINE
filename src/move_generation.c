@@ -312,7 +312,54 @@ void generate_pseudo_moves(MoveList* move_list_ptr, Board* board_ptr) {
 
 
 bool in_check(Move* move_ptr, Board* board_ptr, MoveList* opponent_move_list_ptr, Colour king_colour) {
-	// Cannot castle in, through or into check
+	// Cannot castle into or through check
+	if (move_ptr->type == CASTLE_KINGSIDE && king_colour == WHITE) {
+		for (int i = 0; i < opponent_move_list_ptr->move_count; i++) {
+			Move* opponent_move = &opponent_move_list_ptr->moves[i];
+			if (opponent_move->to == F1 || opponent_move->to == G1) {
+				return false;
+			}
+		}
+	}
+	else if (move_ptr->type == CASTLE_QUEENSIDE && king_colour == WHITE) {
+		for (int i = 0; i < opponent_move_list_ptr->move_count; i++) {
+			Move* opponent_move = &opponent_move_list_ptr->moves[i];
+			if (opponent_move->to == D1 || opponent_move->to == C1) {
+				return false;
+			}
+		}
+	}
+	else if (move_ptr->type == CASTLE_KINGSIDE && king_colour == BLACK) {
+		for (int i = 0; i < opponent_move_list_ptr->move_count; i++) {
+			Move* opponent_move = &opponent_move_list_ptr->moves[i];
+			if (opponent_move->to == F8 || opponent_move->to == G8) {
+				return false;
+			}
+		}
+	}
+	else if (move_ptr->type == CASTLE_QUEENSIDE && king_colour == BLACK) {
+		for (int i = 0; i < opponent_move_list_ptr->move_count; i++) {
+			Move* opponent_move = &opponent_move_list_ptr->moves[i];
+			if (opponent_move->to == D8 || opponent_move->to == C8) {
+				return false;
+			}
+		}
+	}
+	else {
+		// Check if king is under attack after move played
+		for (int i = 0; i < opponent_move_list_ptr->move_count; i++) {
+			Square king_square = board_ptr->player_pieces[king_colour][0].square;
+			if (opponent_move_list_ptr->moves[i].to == king_square) {
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+
+bool can_castle(Move* move_ptr, MoveList* opponent_move_list_ptr, Colour king_colour) {
+	// Cannot castle in check
 	if (move_ptr->type == CASTLE_KINGSIDE && king_colour == WHITE) {
 		for (int i = 0; i < opponent_move_list_ptr->move_count; i++) {
 			Move* opponent_move = &opponent_move_list_ptr->moves[i];
@@ -345,21 +392,26 @@ bool in_check(Move* move_ptr, Board* board_ptr, MoveList* opponent_move_list_ptr
 			}
 		}
 	}
-	// Just check if king is under attack after move played
-	else {
-		for (int i = 0; i < opponent_move_list_ptr->move_count; i++) {
-			Square king_square = board_ptr->player_pieces[king_colour][0].square;
-			if (opponent_move_list_ptr->moves[i].to == king_square) {
-				return false;
-			}
-		}
-	}
 	return true;
 }
 
 
 bool is_legal(Move* move_ptr, Board* board_ptr) {
+	bool legal = true;
 	Colour king_colour = board_ptr->current_turn;
+
+	// Special pre-check for castling
+	if (move_ptr->type == CASTLE_KINGSIDE || move_ptr->type == CASTLE_QUEENSIDE) {
+		switch_current_turn(board_ptr);
+		MoveList opponent_move_list = {};
+		generate_pseudo_moves(&opponent_move_list, board_ptr);
+		
+		legal = can_castle(move_ptr, &opponent_move_list, king_colour);
+		switch_current_turn(board_ptr);
+		if (!legal) {
+			return false;
+		}
+	}
 
 	// Play move on board
 	Piece* captured_piece_ptr = make_move(move_ptr, board_ptr);
@@ -380,7 +432,7 @@ bool is_legal(Move* move_ptr, Board* board_ptr) {
 	MoveList opponent_move_list = {};
 	generate_pseudo_moves(&opponent_move_list, board_ptr);
 
-	bool legal = in_check(move_ptr, board_ptr, &opponent_move_list, king_colour);
+	legal = in_check(move_ptr, board_ptr, &opponent_move_list, king_colour);
 
 	// Undo move on board
 	switch_current_turn(board_ptr);
